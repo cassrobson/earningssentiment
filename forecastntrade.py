@@ -33,9 +33,12 @@ def forecast(frame, correlation, earnings):
 
     today = datetime.today()
 
-    today = datetime.strftime(today, "%Y-%m-%d")
+    #todaystr = datetime.strftime(today, "%Y-%m-%d")
+    
     tickerString = "NVDA"
-    if today + timedelta(days=3):
+
+    
+    if today + timedelta(days=3) == nextdate:
             #pull news for last 5 days, aggregate sentiment, covered buy or sell based on correlation
         model_id = "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis"
         classify = pipeline('sentiment-analysis', model=model_id)
@@ -96,27 +99,40 @@ def forecast(frame, correlation, earnings):
 
 
         tobuy = round(current_price*0.9975, 2)
+        take_profit_price = round(current_price*1.03)
+        stop_loss_price = round(current_price*0.995)
+        
+        
         tosell = round(current_price*1.0025, 2) 
 
-        if signal > 0:
-            api.submit_order(
-                symbol='NVDA',  
-                qty=1,  
-                side='buy',  
-                type='limit',  
-                limit_price=tobuy,  
-                time_in_force='gtc',  
-            )
+        if correlation > 0:
+            if signal > 0:
+                # Buy order with stop loss and take profit
+                api.submit_order(
+                    symbol='NVDA',  
+                    qty=1,  
+                    side='buy',  
+                    type='limit',  
+                    limit_price=tobuy,  
+                    time_in_force='gtc',  
+                    take_profit=dict(
+                        limit_price=take_profit_price,
+                    ),
+                    stop_loss=dict(
+                        stop_price=stop_loss_price,
+                    )
+                )
 
-        elif signal < 0:
-            #place covered put
-            api.submit_order(
-                symbol='NVDA',  
-                qty=1,  
-                side='sell',
-                type='limit',  
-                limit_price=tosell, 
-                time_in_force='gtc',
-                order_class='simple',  
-            )
-        
+            elif signal < 0:
+                # Place covered put with stop loss and take profit
+                api.submit_order(
+                    symbol='NVDA',  
+                    qty=1,  
+                    side='sell',
+                    type='limit',  
+                    limit_price=tosell, 
+                    time_in_force='gtc',
+                    order_class='simple',
+                )
+        else:
+            print('NEGATIVE CORRELATION BETWEEN MEDIA SENTIMENT AND PRICE ACTION, THEREFORE MEDIA SENTIMENT IS NOT A GOOD MEASURE OF PRICE MOVEMENT')
