@@ -110,7 +110,7 @@ def forecast(frame, correlation, earnings):
                 # Buy order with stop loss and take profit
                 api.submit_order(
                     symbol='NVDA',  
-                    qty=1,  
+                    qty=100,  
                     side='buy',  
                     type='limit',  
                     limit_price=tobuy,  
@@ -122,17 +122,32 @@ def forecast(frame, correlation, earnings):
                         stop_price=stop_loss_price,
                     )
                 )
+                #Buy put to delta hedge long position
+                api.submit_order(
+                    symbol='NVDA240328P00250000',
+                    qty=1,
+                    side='buy',
+                    type='market',
+                    time_in_force='gtc'
+                )
 
             elif signal < 0:
-                # Place covered put with stop loss and take profit
                 api.submit_order(
                     symbol='NVDA',  
-                    qty=1,  
+                    qty=100,  
                     side='sell',
                     type='limit',  
                     limit_price=tosell, 
                     time_in_force='gtc',
                     order_class='simple',
+                )
+                #Buy call to delta hedge short position
+                api.submit_order(
+                    symbol='NVDA240328C00250000',
+                    qty=1,
+                    side='buy',
+                    type='market',
+                    time_in_force='gtc'
                 )
         else:
             print('NEGATIVE CORRELATION BETWEEN MEDIA SENTIMENT AND PRICE ACTION, THEREFORE MEDIA SENTIMENT IS NOT A GOOD MEASURE OF PRICE MOVEMENT')
